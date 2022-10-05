@@ -36,6 +36,14 @@ Install the following packages if you do not already have them already, and load
 
 ```{r task-1, message = FALSE}
 # your code here: 
+## install packages code is commented out as you only need to run it once on your computer 
+# install.packages("tidyverse")
+# install.packages("prettydoc")
+# install.packages("rmdformats")
+# install.packages("gapminder")
+# install.packages("knitr")
+# install.packages("kableExtra")
+
 library(tidyverse)
 library(prettydoc) #for other theme options 
 library(rmdformats) #for other theme options 
