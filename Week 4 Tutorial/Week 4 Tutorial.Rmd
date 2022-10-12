@@ -1,0 +1,186 @@
+---
+title: "Week 4 Tutorial"
+author: "Brittany Blankinship"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: 
+  html_document: 
+    theme: paper
+    toc: yes
+    toc_float: yes
+    code_download: yes
+    code_fold: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, message = FALSE}
+library(tidyverse)
+```
+
+After learning about R Markdown in more detail last week, hopefully you can see its use in data science, and data storytelling in particular! 
+
+As you navigate R Studio and R Markdown documents, there are a few things to draw your attention to specifically which can streamline your workflow and coding generally. 
+
+For the example data today, we will return to the [Scottish Heart Disease Statistics from Public Health Scotland](https://www.opendata.nhs.scot/dataset/scottish-heart-disease-statistics). There are 2 datasets we are interested in
+
+1. [Heart Disease Mortality by Health Board](https://www.opendata.nhs.scot/dataset/scottish-heart-disease-statistics/resource/dc0512a8-eb49-43b9-84f1-17ef95365d57)
+
+2. [Health Board look up](https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc), which allows us to connect the datasets based on the Health Board codes.
+
+To load in our data, we need the tidyverse suite of package (specifically readr) loaded, which we have done in the libraries code chunk at the top. With these datasets, it is quite easy to import the data as we can use the website URLs to access the most recent version of the data. 
+
+```{r import-data, message=FALSE}
+mortality_raw <- read_csv("https://www.opendata.nhs.scot/dataset/0e17f3fc-9429-48aa-b1ba-2b7e55688253/resource/dc0512a8-eb49-43b9-84f1-17ef95365d57/download/hd_mortalitybyhbr.csv")
+
+hb <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
+```
+
+
+```{r data-wrangling}
+mortality <- mortality_raw %>%
+  # join activity to hb 
+  left_join(hb, by = c("HBR" = "HB")) %>%
+  # select the variables we are interested in 
+  select(Year, 
+         HBName, 
+         AgeGroup,
+         Sex,
+         Diagnosis,
+         NumberOfDeaths) %>%
+  # filter out aggregate ALL responses from the data 
+  # HB Code S92000003 is for all of Scotland
+  # under 75 years is another aggregate level variable including all people under 65 
+  filter(Sex != "All" & AgeGroup != "All" & HBName != "S92000003" & AgeGroup != "under75 years") %>% 
+  # format the Diagnosis variable for plotting later 
+  mutate(Diagnosis = str_wrap(Diagnosis, width = 10))
+```
+
+## Outputs in R Markdown 
+
+You may have noticed in working through the different practice documents last week that your R output did not appear in the console or Plots tab as it does when working in Script files. 
+
+This is because in R Markdown the output of each code chunk is shown beneath that chunk of code (AKA inline)!
+
+Run the following code, which we saw in last week's tutorial practice document
+
+```{r output-example}
+mortality %>%
+  filter(AgeGroup == "0-44 years",
+         Year %in% c(2013, 2014, 2015, 2016),
+         HBName == "NHS Lothian") %>%
+  ggplot(aes(x = Diagnosis, 
+             y = NumberOfDeaths, 
+             fill = Sex)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~Year) + 
+  theme_bw() + 
+  labs(title = "Heart Disease Deaths", 
+       subtitle = "People under 45 in NHS Lothian in 2013-2016", 
+       y = "Number of Deaths")
+```
+
+If you would like to see the output in the console or Plots tab, you can run the code directly in the console. If you prefer this output style, you can change the settings by going to Tools > Global Options > R Markdown > untick "Show output inline for all R Markdown documents" 
+
+
+## Other tips
+
+* You can use the console for one off checks, but should otherwise write your code in the R Markdown file for reproducibility. 
+
+* If you have run code previously and want to run it again or edit one part of it, go to the console and you can use the up and down arrows to navigate through previously executed code. 
+
+* Use code completion to your advantage! As you type, you may have noticed that R suggests the function, dataset, or variable you may be wishing to use. For variables (context) and functions, only those which are loaded or active in your workspace will be suggested. 
+
+<center> ![R Code Completion Symbol Legend](figures/R Completion Symbol Legend.png) </center>
+
+
+You can select from the list of suggestions with your mouse, the up and down arrows on your keyboard + Tab or Enter, or start writing the function and hit Tab. 
+
+For example, type lib into the R console pane and then press [Tab]. What are you presented with?
+
+* Similarly, when you go to use a function, a yellow box will appear above with the arguments that the function can take. This is particularly helpful when using new functions. 
+
+Type read_csv() into the console to see what I mean. 
+
+* In R Markdown we have many different ways of specifying how our code could be run. You can run the line of code by using a keyboard shortcut, the the options from the run button, or the options within a code chunk. Within each code chunk there are two ways you can run code: run all chunks above (particularly helpful when working in a long documents) or run the current chunk. 
+
+## Keyboard shortcuts 
+
+You can view the keyboard shortcuts available within R Studio directly by going to Tools > Keyboard Shortcuts Help. 
+
+You can also modify keyboard shortcuts and create your own system if you have a particular way of working in other software that you want to keep consistent. 
+
+Assuming you keep with the existing keyboard short cuts, I have included a few of my most used shortcuts below: 
+
+### Running code 
+
+* IOS: Cmd + Enter
+
+* Windows: Alt + Enter
+
+### Insert an R code chunk 
+
+* IOS: Option + Cmd + I 
+
+* Windows: Ctrl + Atl + I 
+
+Why don't you try it! 
+
+### Insert a pipe operator
+
+* IOS: Cmd + Shift + M
+
+* Windows: Ctrl + Shift + M 
+
+Try inserting a pipe in the code chunk that you created above. 
+
+### Format your code for readability and general beauty 
+
+* IOS: Cmd + Shift + A
+
+* Windows: Ctrl + Shift + A
+
+*tip*: if you are to use this shortcut, do this before adding comments to your code 
+
+Compare the code for the plot shown above, without the helpful spacing. Not only is it less beautiful to look at, but it is also ovewhelming very difficult to read and understand what is happening.  
+
+```{r messy-code}
+mortality %>% filter(AgeGroup == "0-44 years", Year %in% c(2013, 2014, 2015, 2016), HBName == "NHS Lothian") %>% ggplot(aes(x = Diagnosis, y = NumberOfDeaths, fill = Sex)) + geom_col(position = "dodge") + facet_wrap(~Year) + theme_bw() + labs(title = "Heart Disease Deaths", subtitle = "People under 45 in NHS Lothian in 2013-2016", y = "Number of Deaths")
+```
+
+You may also notice that when the spacing formatting is not used, the whole chunk of code is treated as a single line of code (line 158).
+
+In R, you can format code by hitting "Enter" after a comma, pipe, or plus sign in `ggplot2` code. For readability, it is a good idea to have each line be essentially a new element or argument within the larger function. Notice how R automatically takes care of the spacing for us (so helpful!)
+
+```{r pretty-code}
+mortality %>%
+  filter(AgeGroup == "0-44 years",
+         Year %in% c(2013, 2014, 2015, 2016),
+         HBName == "NHS Lothian") %>%
+  ggplot(aes(x = Diagnosis, 
+             y = NumberOfDeaths, 
+             fill = Sex)) + 
+  geom_col(position = "dodge") + 
+  facet_wrap(~Year) + 
+  theme_bw() + 
+  labs(title = "Heart Disease Deaths", 
+       subtitle = "People under 45 in NHS Lothian in 2013-2016", 
+       y = "Number of Deaths") 
+```
+
+We can see above that the code begins with the dataset `mortality` being piped (which we can read in plain English as saying "and then do this") into the filter function. As this is the start of our code, everything is indented for us from there. Within the filter function we have3 arguments, which are further intended. In this way, we can quickly scan the code and see that 6 functions have been used (filter, ggplot, geom_col, facet_wrap, theme_bw, and labs).
+
+Another benefit of formatting your code like this is you can comment out specific arguments. Try to comment out the subtitle argument on line 177, rerun the code, and see what happens. 
+
+### Knit a document 
+
+If you do not want to click on the `Knit` button and would prefer to stick to the keyboard the following shortcut is useful 
+
+* IOS: Cmd + Shift + K
+
+* Windows: Ctrl + Shift + K
+
+
+That's all for now! Happy coding :) 
+
