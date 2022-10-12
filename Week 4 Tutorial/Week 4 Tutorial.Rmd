@@ -63,7 +63,7 @@ You may have noticed in working through the different practice documents last we
 
 This is because in R Markdown the output of each code chunk is shown beneath that chunk of code (AKA inline)!
 
-Run the following code, which we saw in last week's tutorial practice document
+Run the following code, which we saw in week 2's tutorial bar chart data flow demo:
 
 ```{r output-example}
 mortality %>%
@@ -90,18 +90,18 @@ If you would like to see the output in the console or Plots tab, you can run the
 
 * If you have run code previously and want to run it again or edit one part of it, go to the console and you can use the up and down arrows to navigate through previously executed code. 
 
-* Use code completion to your advantage! As you type, you may have noticed that R suggests the function, dataset, or variable you may be wishing to use. For variables (context) and functions, only those which are loaded or active in your workspace will be suggested. 
+* Use code completion to your advantage! As you type, you may have noticed that R suggests the function, dataset, or variable you may be wishing to use. For variables (context) and functions, only those which are loaded or active in your workspace will be suggested.
+
+   + You can select from the list of suggestions with your mouse, the up and down arrows on your keyboard + Tab or Enter, or start writing the function and hit Tab. 
+
+  + For example, type lib into the R console pane and then press [Tab]. What are you presented with?
 
 <center> ![R Code Completion Symbol Legend](figures/R Completion Symbol Legend.png) </center>
 
 
-You can select from the list of suggestions with your mouse, the up and down arrows on your keyboard + Tab or Enter, or start writing the function and hit Tab. 
-
-For example, type lib into the R console pane and then press [Tab]. What are you presented with?
-
 * Similarly, when you go to use a function, a yellow box will appear above with the arguments that the function can take. This is particularly helpful when using new functions. 
 
-Type read_csv() into the console to see what I mean. 
+    + Type read_csv() into the console to see what I mean. 
 
 * In R Markdown we have many different ways of specifying how our code could be run. You can run the line of code by using a keyboard shortcut, the the options from the run button, or the options within a code chunk. Within each code chunk there are two ways you can run code: run all chunks above (particularly helpful when working in a long documents) or run the current chunk. 
 
