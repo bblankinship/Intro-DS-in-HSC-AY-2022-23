@@ -203,3 +203,6 @@ activity %>%
   theme_dark() + 
   labs(title = "Heart Disease Activity by Sex and Diagnosis") + 
   ylab("Number of Discharges")
+
+----
+*Brittany Blankinship (2022)*
