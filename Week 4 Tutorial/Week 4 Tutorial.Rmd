@@ -184,3 +184,5 @@ If you do not want to click on the `Knit` button and would prefer to stick to th
 
 That's all for now! Happy coding :) 
 
+----
+*Brittany Blankinship (2022)*
