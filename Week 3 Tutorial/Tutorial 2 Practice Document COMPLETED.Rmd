@@ -265,5 +265,5 @@ While it can take up space, it is good practice to finish a document calling the
 sessionInfo(package = NULL)
 ```
 
-
-
+----
+*Brittany Blankinship (2022)*
