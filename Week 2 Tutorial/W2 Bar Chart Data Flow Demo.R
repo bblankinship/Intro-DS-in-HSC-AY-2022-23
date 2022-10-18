@@ -205,4 +205,4 @@ activity %>%
   ylab("Number of Discharges")
 
 ----
-*Brittany Blankinship (2022)*
+#Brittany Blankinship (2022)
