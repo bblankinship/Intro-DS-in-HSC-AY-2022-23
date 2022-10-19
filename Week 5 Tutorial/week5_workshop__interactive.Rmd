@@ -1,0 +1,274 @@
+---
+title: "Introduction to Data Science in Health and Social Care"
+subtitle: "Week 5"
+runtime: shiny
+output: html_document
+---
+
+<!-- Press "Run Document" in RStudio to start (or CMD + SHIFT + K or CTRL + SHIFT + K) -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# install and load require packages
+list.of.packages <- c("tidyverse", "rmarkdown", "gt", "shiny")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+if(length(new.packages)){install.packages(new.packages)}
+
+lapply(list.of.packages, require, character.only = TRUE)
+
+# define cars_df using mtcars
+cars_df <- mtcars %>%
+  # add car and make columns
+  mutate(
+    car  = rownames(mtcars),
+    make = word(car, 1)
+    ) %>%
+  relocate(car, make) %>%
+  # define data types
+  mutate(
+    cyl  = as.factor(cyl),
+    vs   = as.factor(vs),
+    am   = as.factor(am),
+    gear = as.factor(gear),
+    carb = as.factor(carb)
+  )
+  
+```
+
+
+## Our Data
+
+We are using the `mtcars` (Motor Trend Car Road Tests) dataset which includes information about 32 cars. The `cars_df` is a dataframe with a few extra columns, it is already loaded for your convince. If you are interested how this dataframe was formed, you can see the code in lines 20 - 35.
+
+The dataframe contains many types of variables, qualitative and quantitative, categorical (discrete) and continuous.
+
+The columns:
+
+| Column Name | Description                              |
+| ----------- | ---------------------------------------- |
+| car         | Car name                                 |
+| make        | Car manufacturer                         |
+| mpg         | Miles/(US) gallon                        |
+| cyl         | Number of cylinders                      |
+| disp        | Displacement (cu.in.)                    |
+| hp          | Gross horsepower                         |
+| drat        | Rear axle ratio                          |
+| wt          | Weight (1000 lbs)                        |
+| qsec        | 1/4 mile time                            |
+| vs          | Engine (0 = V-shaped, 1 = straight)      |
+| am          | Transmission (0 = automatic, 1 = manual) |
+| gear        | Number of forward gears                  |
+| carb        | Number of carburetors                    |
+
+
+The first few rows of `cars_df` are:
+
+``` {r head-cars}
+gt(head( cars_df ))
+```
+
+## Make Changes Here
+
+Tasks:
+
+1. You can select one (`x_variable`) or two (`x_variable` and `y_variable`) from the columns names of `cars_df`
+2. See how the data, plots, and code has changed
+3. Take a screenshot (CMD + SHIFT + 4 or WINDOWS + SHIFT + S) and tell a short story with the plot
+4. Try another combination of column names
+
+*If you only want to use one variable, set `y_variable` as null, i.e. `y_variable <- NULL`*
+
+```{r inputs, echo=FALSE}
+selectInput("x_variable", 
+            label = "x_variable:",
+            choices = names(cars_df), 
+            selected = "cyl")
+
+selectInput("y_variable", 
+            label = "y_variable:",
+            choices = c('NULL', names(cars_df)), 
+            selected = "NULL")
+
+```
+
+## Display Data
+
+The following code will display the data you have selected above. There is no need to change the following code.
+
+The selected columns:
+
+```{r, echo=FALSE}
+renderPrint({
+  if (input$y_variable == "NULL"){
+    paste0("head( cars_df %>% select(", input$x_variable, ") )")
+  } else {
+    paste0("head( cars_df %>% select(",input$x_variable,", ", input$y_variable, ") )")
+  }
+})
+
+
+``` 
+
+
+```{r wrangle, echo=FALSE}
+# Wrangle Data ----
+wrangled_cars_df <- reactive({
+  if (input$y_variable == "NULL"){
+    cars_df %>%
+      select(all_of(input$x_variable))
+  } else {
+    cars_df %>%
+      select(all_of(c(input$x_variable, input$y_variable)))
+  }
+  })
+
+# Define Data Class ----
+x_class <- reactive({
+  class(cars_df[, input$x_variable])
+  })
+y_class <- reactive({
+  if(!is.null(input$y_variable)){
+    y_class <- class(cars_df[, input$y_variable])
+  } else {
+    y_class <- NULL
+  }
+  y_class
+  })
+  
+
+# display dataframe
+renderTable(gt(head(wrangled_cars_df())))
+
+```
+
+
+```{r , echo=FALSE}
+# Plots ----
+renderPrint({
+  if (!(input$y_variable %in% names(cars_df)) & (x_class() != "numeric")){
+    ## Single Variable Categorical (Bar Plot)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ")) + geom_bar()") 
+
+  } else if (!(input$y_variable %in% names(cars_df)) & (x_class() == "numeric")){
+    ## Single Variable Continuous (Histogram Plot)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ")) + geom_histogram()") 
+  
+  } else if ((x_class() != "numeric") & (y_class() == "numeric")) {
+    ## Two Variables Categorical-Continuous (Box Plot)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ", y = ", input$y_variable,")) + geom_boxplot()") 
+  
+  } else if ((x_class() == "numeric") & (y_class() != "numeric")) {
+    ## Two Variables Continuous-Categorical (Box Plot)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ", y = ", input$y_variable,")) + geom_boxplot()") 
+  
+  } else if ((x_class() != "numeric") & (y_class() != "numeric")) {
+    ## Two Variables Categorical-Categorical (2D Histogram)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ", y = ", input$y_variable,")) + geom_bin2d()") 
+  
+  } else if ((x_class() == "numeric") & (y_class() == "numeric")) {
+    ## Two Variables Continuous-Continuous (Scatter Plot)
+    paste0("ggplot(wrangled_cars_df, aes(x = ", input$x_variable, ", y = ", input$y_variable,")) + geom_point()") 
+  
+  }
+  
+})
+
+
+```
+
+```{r plot, echo=FALSE}
+# Plots ----
+renderPlot({
+  if (!(input$y_variable %in% names(cars_df)) & (x_class() != "numeric")){
+    ## Single Variable Categorical (Bar Plot)
+    
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x    = input$x_variable,
+        fill = input$x_variable
+      )) +
+      geom_bar() +
+      theme(legend.position = "none")
+  
+    # rotate labels if too many options in the x axis
+    if (length(unique(wrangled_cars_df()[,input$x_variable])) > 10){
+      cars_plot <- cars_plot +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+    }
+  
+  
+  } else if (!(input$y_variable %in% names(cars_df)) & (x_class() == "numeric")){
+    ## Single Variable Continuous (Histogram Plot)
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x = input$x_variable
+      )) +
+      geom_histogram(bins = 10)
+  
+  
+  } else if ((x_class() != "numeric") & (y_class() == "numeric")) {
+    ## Two Variables Categorical-Continuous (Box Plot)
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x   = input$x_variable,
+        y   = input$y_variable,
+        col = input$x_variable
+      )) +
+      geom_boxplot() +
+      theme(legend.position = "none")
+  
+    # rotate labels if too many options in the x axis
+    if (length(unique(wrangled_cars_df()[,input$x_variable])) > 10){
+      cars_plot <- cars_plot +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+    }
+  
+  } else if ((x_class() == "numeric") & (y_class() != "numeric")) {
+    ## Two Variables Continuous-Categorical (Box Plot)
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x   = input$x_variable,
+        y   = input$y_variable,
+        col = input$y_variable
+      )) +
+      geom_boxplot() +
+      theme(legend.position = "none")
+  
+  
+  } else if ((x_class() != "numeric") & (y_class() != "numeric")) {
+    ## Two Variables Categorical-Categorical (2D Histogram)
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x = input$x_variable,
+        y = input$y_variable
+      )) +
+      geom_bin2d()
+  
+  } else if ((x_class() == "numeric") & (y_class() == "numeric")) {
+    ## Two Variables Continuous-Continuous (Scatter Plot)
+    cars_plot <- ggplot(
+      wrangled_cars_df(),
+      aes_string(
+        x = input$x_variable,
+        y = input$y_variable
+      )) +
+      geom_point(alpha = 0.8)
+  
+  }
+  
+  # display plot
+  cars_plot
+})
+
+
+```
+
+----
+
+*Kevin Tsang (2022-08-12)*
