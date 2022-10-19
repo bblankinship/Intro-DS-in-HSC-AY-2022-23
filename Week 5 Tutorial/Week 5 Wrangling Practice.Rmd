@@ -1,0 +1,225 @@
+---
+title: "Week 5 Tutorial Wrangling Practice Document"
+author: "Brittany Blankinship"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: 
+  html_document: 
+    theme: paper
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This week we have explored some of the data wrangling functions in R, focusing specifically on the `tidyverse` set of packages. So, first off we need to load the `tidyverse` packages. 
+
+```{r libraries, message = FALSE}
+library(tidyverse)
+```
+
+**Remember** If you get an error such as `"Error: package or namespace load failed for '[name of the package]' in loadNamespace"` this means you do not have the package installed on your computer. You can always check which packages are installed by going to the "Packages" tab on RStudio. If the package is listed, you have it installed. If there is a tick mark by the name, it is loaded and active in your current R session.  
+
+
+In this practice document we will be using a familiar set of data from Public Health Scotland (Scottish Heart Disease activity and morality by health board) that we have used in previous tutorials in Week 2 and Week 4. Only now, you have the tools to understand all of the wrangling code - how exciting!
+
+For the example data today, we will return to the [Scottish Heart Disease Statistics from Public Health Scotland](https://www.opendata.nhs.scot/dataset/scottish-heart-disease-statistics). There are 2 datasets we are interested in
+
+1. [Health Disease Activity by Health Board]("https://www.opendata.nhs.scot/dataset/0e17f3fc-9429-48aa-b1ba-2b7e55688253/resource/748e2065-b447-4b75-99bd-f17f26f3eaef/download/hd_activitybyhbr.csv")
+
+2. [Health Board look up](https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc), which allows us to connect the datasets based on the Health Board codes.
+
+
+Work through the following tasks with your partner, or on your own. There is a sample completed practice document on the github repository and on Learn under Week 5 Tutorial that you can check later for example solutions - remember, there are many different ways of doing the same thing in R! 
+
+If you wrote code that works, and the example solution is different, both may very well be correct. The most important thing is that *you* understand your code and that it runs effectively (doing what you want it to do).
+
+# Wrangling Practice 
+
+## Task 1
+
+Load in the datasets and save them in your working environment. Call them activity_raw and hb. 
+
+To load in our data, we need the tidyverse suite of package (specifically readr) loaded, which we have done in the libraries code chunk at the top. With these datasets, it is quite easy to import the data as we can use the website URLs to access the most recent version of the data. 
+
+The URLs to access the data are
+
+* Activity data: https://www.opendata.nhs.scot/dataset/0e17f3fc-9429-48aa-b1ba-2b7e55688253/resource/748e2065-b447-4b75-99bd-f17f26f3eaef/download/hd_activitybyhbr.csv
+
+* Health Board look-up: https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv
+
+```{r task1, message = FALSE}
+# your code here 
+
+```
+
+
+## Task 2
+
+Now that we have our 2 data sets saved to our global environment, use your favourite functions for eyeballing data and write a couple of sentences about each data set (its dimensions, the variables inside, types of data, etc.)
+
+```{r task2}
+# your code here 
+
+```
+
+The activity_raw data set has 43,200 rows and 15 columns. Of these 15 variables, 12 are characters and 3 are numeric. 
+
+The hb data set has 18 rows and 5 columns. These 5 columns or variables are largely characters, with 2 numeric or double variable types. 
+
+
+## Task 3 
+
+Our second dataset, hb, helps us to identify what the health board codes mean in the activity_raw and morality_raw datasets. Lets join the hb data set to the activity_raw data set, calling the new data set activity_joined. 
+
+What type of join do you think would be best to use? 
+
+```{r task3}
+# your code here 
+
+```
+
+## Task 4 
+
+Notice that we now have 43,200 observations or rows in our data (as we did with activity_raw). However, now we have 19 variables or columns. D
+
+o we need all of these variables if we are interested in the year, admission type, diganosis, number of discharges, and demographic variables of the patients? I do not think so. 
+
+Select only the variables of interest and save this in a new data set called activity_selected. 
+
+*Note* Remember, we want to use our joined data set we created in Task 3, not the original data set. 
+
+```{r task4}
+# your code here 
+
+```
+
+## Task 4.2 
+
+What format is the data currently in? Long or wide? 
+
+
+## Task 5
+Now that we have out variables of interest in our data set, how might we get a summary of the NumberofDischarges variable? What about the AdmissionType variable? 
+
+Do you notice any differences between the summary information available? Why might this be? 
+
+```{r task5}
+# your code here 
+
+```
+
+NumberOfDischarges is a numeric variable, so we get summary statistics like the mean, median, and minimum and maximum values. 
+
+AdmissionType is a character variable. We want it to be treated as a categorical variable, or factor. So we need to change the variable type first to get a meaningful summary of the variable. 
+
+## Task 5.2 
+
+Change the AdmissionType variable to be a factor and then look at the summary 
+
+*Hint* you can use the same answer as above, but need to add a function to change the varaible class in the work flow 
+
+```{r task5-2}
+# your code here 
+
+```
+
+## Task 6 
+
+We can see from our result in Task 5.2 that there are aggregate levels of the variable "All" included with the specific levels "Elective", "Emergency", and "Transfer". How might we look look at only the non-aggregate levels of the variable?
+
+*Hint* make sure you check how the different levels of the variable are spelled. R will treat "all" differently from "All" - but you will not get an error in this case. Try your code with "all" and "All" to see what I mean. 
+
+```{r task6}
+# your code here 
+
+```
+
+## Task 6.2 
+
+How might we look look at only the non-aggregate levels of the variable?
+
+What if we wanted to only keep the aggregate level of the AdmissionType variable? 
+
+```{r task6-2}
+# your code here 
+
+```
+
+## Task 6.3 
+
+What if we wanted to remove all of the aggregate levels from our variables of interest? 
+
+*Hint* Go back to Task 5 and Task 5.2 and repeat these steps for the other character variables in our data set activity_selected
+
+```{r task6-3}
+# your code here 
+
+```
+
+## Task 7 
+
+As we discussed in the tutorial, mutate and summarise are similar though distinct functions. Change the summarise function below to be mutate instead - what do you expect to see? 
+
+```{r task7}
+activity_selected %>% 
+  summarise(Mean_Discharge = mean(NumberOfDischarges, na.rm = TRUE)) 
+
+# your code here 
+
+```
+
+## Additional note 
+
+Try removing the na.rm = T argument and see what happens. This argument is a logical (taking TRUE or FALSE in response) argument to remove NA values in the calculation. 
+
+```{r task7-2}
+activity_selected %>% 
+  summarise(Mean_Discharge = mean(NumberOfDischarges)) 
+```
+
+If there are missing values when calculating the mean or standard deviation, you will not receive an error but instead your outcome will be an NA, even when there is data there and it is an applicable function. 
+
+# Benefits and considerations of a tidy workflow 
+
+A very cool aspect of working with the tidyverse, is you can immediately use a variable you have created through the mutate function without having to save it into an object or data frame. 
+
+For example, in the solution code to Task 5.2, I created a new variable called AdmissionType_f and immediately used in the follow line of code in the select function.
+
+```{r example1}
+activity_selected %>%
+  mutate(AdmissionType_f = factor(AdmissionType)) %>% 
+  select(AdmissionType_f) %>% 
+  summary()
+```
+
+This can be super useful when wrangling data for plotting (which we will explore next week), or creating tables. 
+
+One of the things to note is that in a tidy work flow, the code is executed in order. Remember, you can read the %>% as saying "and then". So the following code in plain language would be "Take the activity_select data set and then select the variables AgeGroup, Diagnosis, and HBName and then mutate or change the HBName variable to be a factor" 
+
+```{r example2}
+activity_joined %>% 
+  select(AgeGroup, Diagnosis, HBName) %>% 
+  mutate(HBName = factor(HBName))
+```
+
+This means that **the order of your code matters!**. You must thinking logically about the order in which you are asking R to do things. 
+
+You can only mutate variables which are currently selected - see the error in the code below 
+```{r tidyflow-error2}
+#activity_joined %>% 
+#  select(AgeGroup, Diagnosis) %>% 
+#  mutate(HBName = factor(HBName))
+
+#I have commented out the code here in order for the file to knit. An R Markdon document will not render/knit if there are errors in the code. Remove the comments and try and knit the file to see what I mean! 
+```
+
+The error code here is actually quite helpful "! object HBName not found". This tells us that the mutate function cannot do as we are asking it to do because R cannot find the variable called HBName. This is becuase we have selected only AgeGroup and Diagnosis from the data set, meaning we can now only work with those variables. 
+
+To solve this error we can (a) add HBName to our select function or (b) move the mutate function before the select function. 
+
+That's all for now! :) 
+
+----
+*Brittany Blankinship (2022)*
