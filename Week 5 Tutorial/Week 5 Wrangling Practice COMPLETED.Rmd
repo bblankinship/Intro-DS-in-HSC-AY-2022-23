@@ -265,6 +265,6 @@ The error code here is actually quite helpful "! object HBName not found". This 
 To solve this error we can (a) add HBName to our select function or (b) move the mutate function before the select function. 
 
 That's all for now! :) 
-
+ 
 ----
 *Brittany Blankinship (2022)*
