@@ -1,0 +1,273 @@
+---
+title: "Introduction to Data Science in Health and Social Care"
+subtitle: "Week 6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+# load required packages
+library(tidyverse)
+```
+
+## Introduction
+This worksheet will explore data story telling with the assistance of data visualisation and `ggplot2`. Although the data is objective, what you choose to highlight to the reader is subjective and there is freedom in how you present data.
+
+Your task begins on line 215.
+
+## References
+Below are some tools you can use to highlight different aspects of the data. Run each code chunk to see the code in action. There is no need to you all the tools available, pick one or two that are most relevant for your story telling.
+
+### Colour 
+We can colour and highlight certain points in the data using the `col` aesthetic. This can be a single variable like `wt` or a comparison like `wt > 5`
+
+```
+aes(col = ___)
+```
+
+```{r}
+ggplot(mtcars, 
+       aes(wt, mpg, 
+           col = wt > 5
+           )) + 
+  geom_point()
+```
+
+In bar charts, the colour can be changed using the `fill` aesthetic.
+
+```
+aes(fill = ___)
+```
+
+``` {r}
+ggplot(mtcars, 
+       aes(as.factor(cyl),
+           fill = as.factor(cyl))) + 
+  geom_bar()
+```
+
+More info: http://www.sthda.com/english/wiki/ggplot2-colors-how-to-change-colors-automatically-and-manually
+
+
+### Vertical Line 
+We can add a vertical line using the `geom_vline` geometry, specifying where you want the line to placed with the `xintercept` argument.
+
+```
++ geom_vline(xintercept = ___)
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  geom_vline(xintercept = 2)
+```
+
+You can place multiple lines using the `c()` function.
+
+```
++ geom_vline(xintercept = c(1,2,5))
+```
+
+More info: https://ggplot2.tidyverse.org/reference/geom_abline.html
+
+
+### Horizontal Line 
+We can add a horizontal line using the `geom_hline` geometry, specifying where you want the line to placed with the `yintercept` argument.
+
+```
++ geom_hline(yintercept = ___)
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  geom_hline(yintercept = 20)
+```
+
+You can place multiple lines using the `c()` function.
+
+```
++ geom_hline(yintercept = c(1,2,5))
+```
+
+More info: https://ggplot2.tidyverse.org/reference/geom_abline.html
+
+### Line
+We can add a line anywhere on the plot using the `geom_abline` aesthetic, which takes two arguments `intercept` and `slope`.
+
+```
++ geom_abline(intercept = ___, slope = ___)
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  geom_abline(intercept = 37, slope = -5)
+```
+
+We can accurately model this line to best fit the data using the `geom_smooth` geometry with a "linear model" `lm` (i.e. a straight line).
+
+```
++ geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+More info: https://ggplot2.tidyverse.org/reference/geom_abline.html
+
+
+### Annotate
+We can annotate the plot using the `annotate` layer. We can add text and rectangles to highlight areas of interest.
+
+To add text to the plot, use the `text` option, then specify where you want the text to appear using the `x` and `y` arguments.
+
+```
++ annotate("text", x = ___, y = ___, label = "___")
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  annotate("text", 
+           x = 5, 
+           y = 20, 
+           label = "This is interesting")
+```
+
+
+To add a rectangle to the plot, use the `rect` option, then specify where you want the rectangle to appear using the `xmin`, `xmax`, `ymin` and `ymax` arguments.
+
+```
++ annotate("rect", xmin = ___, xmax = ___, ymin = ___, ymax = ___)
+```
+
+```{r}
+ggplot(mtcars, aes(wt, mpg)) + 
+  geom_point() +
+  annotate("rect", 
+           xmin = 5,
+           xmax = 5.5,
+           ymin = 10,
+           ymax = 15,
+           alpha = 0.5)
+```
+
+More info: https://ggplot2.tidyverse.org/reference/annotate.html
+
+
+## Our Data
+
+We are using the `mtcars` (Motor Trend Car Road Tests) dataset which includes information about 32 cars. The `cars_df` is a dataframe with a few extra columns, it is formed in the next code chunk.
+
+The dataframe contains many types of variables, qualitative and quantitative, categorical (discrete) and continuous.
+
+The columns:
+
+| Column Name | Description                              |
+| ----------- | ---------------------------------------- |
+| car         | Car name                                 |
+| make        | Car manufacturer                         |
+| mpg         | Miles/(US) gallon                        |
+| cyl         | Number of cylinders                      |
+| disp        | Displacement (cu.in.)                    |
+| hp          | Gross horsepower                         |
+| drat        | Rear axle ratio                          |
+| wt          | Weight (1000 lbs)                        |
+| qsec        | 1/4 mile time                            |
+| vs          | Engine (0 = V-shaped, 1 = straight)      |
+| am          | Transmission (0 = automatic, 1 = manual) |
+| gear        | Number of forward gears                  |
+| carb        | Number of carburetors                    |
+
+
+
+Form `cars_df` Data Frame
+``` {r}
+# define cars_df using mtcars
+cars_df <- mtcars %>%
+  # add car and make columns
+  mutate(
+    car  = rownames(mtcars),
+    make = word(car, 1)
+    ) %>%
+  relocate(car, make) %>%
+  # define data types
+  mutate(
+    cyl  = as.factor(cyl),
+    vs   = as.factor(vs),
+    am   = as.factor(am),
+    gear = as.factor(gear),
+    carb = as.factor(carb)
+  )
+```
+
+
+## Make Changes Here
+
+Task:
+
+1. Choose one or two variables to plot
+2. Pick an appropriate geometry for your plot
+3. Think of a single line story, this will be your subtitle
+4. Using annotations, lines, and colour, highlight this story in your visualisation
+5. (Optional) Manipulate data using `mutate` for even more customised visualisations
+
+```{r data-frame-manipulation}
+# optional
+cars_plot_df <- cars_df %>%
+  mutate(
+    # add new column here
+    
+  )
+```
+
+```{r data-viz}
+ggplot(
+  cars_plot_df,
+  aes(
+    x = ____, # choose variable for x axis
+    y = ____  # choose variable for y axis
+    # col = ____ # colour plot using this variable
+  )) +
+  
+  # uncomment one of the following geometries to make a plot
+  # geom_point() + # scatter plot
+  # geom_line() + # line plot
+  # geom_histogram() + # histogram plot (for 1 variable)
+  # geom_boxplot() + # box plot
+  
+  # use highlights as necessary
+  # geom_hline(yintercept = ___) + # horizontal line
+  # geom_vline(xintercept = ___) + # vertical line
+  # geom_abline(intercept = ___, slope = ___) + # straight line
+  # annotate("text", 
+  #          x = ___, 
+  #          y = ___,
+  #          label = "show this text") + # annotation text
+  # annotate("rect", 
+  #          xmin = ___, 
+  #          xmax = ___, 
+  #          ymin = ___, 
+  #          ymax = ___,
+  #          alpha = 0.5) + # annotation rectangle
+
+  # add informative title, subtitle, and axis labels
+  labs(
+    title    = "___",
+    subtitle = "___",
+    x        = "change me, x axis",
+    y        = "change me, y axis"
+  )
+```
+
+
+----
+
+*Kevin Tsang (2022-08-12)*
