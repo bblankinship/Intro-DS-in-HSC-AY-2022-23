@@ -1,0 +1,172 @@
+---
+title: "Code from slides Week 6"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output: 
+  html_document: 
+    theme: paper
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Included in this document is the code from the various plots shown in this week's slides. You are welcome to play around with the code and change different things to gain a better understanding of how it all works! 
+
+```{r libraries, message = FALSE}
+library(tidyverse) #already loads ggplot2 for us! 
+library(lubridate)
+```
+
+First, we must import the data
+```{r data-import, message = FALSE}
+cancelled_raw <- read_csv("https://www.opendata.nhs.scot/dataset/479848ef-41f8-44c5-bfb5-666e0df8f574/resource/0f1cf6b1-ebf6-4928-b490-0a721cc98884/download/cancellations_by_board_february_2022.csv")
+hb <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
+```
+
+Then we need to do a bit of data wrangling to prepare the dataset for visualisation. After last week, you will hopefully have a better understanding of the different functions used below! 
+
+```{r wrangling}
+cancelled <- cancelled_raw %>%
+  # Join cancelled to hb
+  left_join(hb, by = c("HBT" = "HB")) %>%
+  # Select the variables we're interested in
+  select(Month,
+         HBName,
+         TotalOperations,
+         TotalCancelled) %>%
+  # Reformat the month column & create a Year variable 
+  mutate(Month = ymd(Month, truncated = TRUE),
+         Year = as.factor(year(Month)))
+```
+
+Now we are ready to visualise! The following code is what was used in the slides 
+
+# Visualisations {.tabset .tabset-pills}
+
+## bar plot 
+
+```{r bar-plot}
+ggplot(data = cancelled, aes(x = Year, y = TotalCancelled)) + 
+  geom_col()
+```
+
+
+You can also pipe data into `ggplot`, this is more of a coding style choice/preference. 
+
+
+```{r piped-example}
+cancelled %>% 
+  ggplot(aes(x = Year, y = TotalCancelled)) + 
+  geom_col()
+```
+
+Note that the same plot is produced as in line 46. 
+
+It can be helpful to pipe the data into `ggplot` if there is some data wrangling you would like to do beforehand. For exmaple, if we did not want to save the wrangling data into an object just rather wrangle it only for a data visualisation we could just add the `ggplot` code after another pipe (the joys of working with the tidyverse!) 
+
+```{r piped-wrangle-example}
+cancelled_raw %>%
+  # Join cancelled to hb
+  left_join(hb, by = c("HBT" = "HB")) %>%
+  # Select the variables we're interested in
+  select(Month,
+         HBName,
+         TotalOperations,
+         TotalCancelled) %>%
+  # Reformat the month column & create a Year variable 
+  mutate(Month = ymd(Month, truncated = TRUE),
+         Year = as.factor(year(Month))) %>% 
+  ggplot(aes(x = Year, y = TotalCancelled)) + 
+  geom_col()
+```
+
+As you can see, this also produced the same plot as in line 46 and line 55. 
+
+As a further style point in your code, you do not have to specify x = or y = either, this is the same plot as the 3 above - just a different style of code
+
+```{r style-3-example}
+cancelled %>% 
+  ggplot(aes(Year, TotalCancelled)) + 
+  geom_col()
+```
+
+## density plot 
+
+```{r density}
+ggplot(data = cancelled, aes(x = TotalCancelled)) + 
+  geom_density()
+```
+
+## scatter plot 
+
+```{r scatter}
+ggplot(data = cancelled, 
+       aes(x = TotalCancelled, y = TotalOperations)) + 
+  geom_point()
+```
+
+## inside and outside `aes()` {.tabset .tabset-pills}
+
+### inside 
+
+```{r inside-aes}
+ggplot(data = cancelled, 
+       aes(x = TotalCancelled, y = TotalOperations,
+           color = Year)) + 
+  geom_point()
+```
+
+Note, if you try and specify the color to represent the 3rd variable Year outside the `aes()` you get an error. *Note* I have commented out the code to knit the file, un-comment the code to see the error. 
+
+```{r aes-error}
+#ggplot(data = cancelled, 
+#       aes(x = TotalCancelled, y = TotalOperations)) + 
+#  geom_point(color = Year)
+```
+
+### outside
+
+```{r aes-outside}
+ggplot(data = cancelled, 
+       aes(x = TotalCancelled, y = TotalOperations)) + 
+  geom_point(color = "mediumpurple")
+```
+
+Similarly, if you try and put a single value and not a variable within the aes() R things you meant it as a variable. This will not produce as error as such, but the plot will likely not be as you intended it. 
+
+```{r aes-error-2}
+ggplot(data = cancelled, 
+       aes(x = TotalCancelled, y = TotalOperations, 
+           color = "mediumpurple")) + 
+  geom_point()
+```
+
+## both `aes()` inside and outside 
+
+```{r both-aes}
+ggplot(data = cancelled, 
+       aes(x = TotalCancelled, y = TotalOperations, 
+           color = Year)) + 
+  geom_point(shape = 4)
+```
+
+## layered example 
+
+Compare the following 2 plots? What do you notice? 
+
+```{r layered-example-1}
+ggplot(cancelled, aes(TotalCancelled, TotalOperations)) + 
+  geom_point() + 
+  geom_density2d()
+```
+
+```{r layered-example-2}
+ggplot(cancelled, aes(TotalCancelled, TotalOperations)) + 
+  geom_density2d() + 
+  geom_point() 
+```
+
+# {-}
+
+---
+*Brittany Blankinship (2022)*
