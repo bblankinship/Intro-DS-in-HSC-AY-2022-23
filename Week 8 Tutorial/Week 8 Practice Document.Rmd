@@ -1,0 +1,124 @@
+---
+title: "Week 8 Tutorial: TBI Data SOLUTIONS"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    theme: paper
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+You will need to load the required libraries first: `tidyverse`, `here`, `knitr`, and `kableExtra`.
+
+```{r libraries, message = FALSE}
+library(tidyverse)
+library(here)
+library(knitr)
+library(kableExtra)
+```
+
+## The Data: TBI 
+
+We will be using traumatic brain injury (TBI) data from a Tidy Tuesday challenge. You can learn more about [the challenge and the data here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-03-24/readme.md) (spend 3-5 minutes looking at the linked page). Be sure to read over the data dictionary to make sure you understand what variables are included in the datasets and what they measure. 
+
+In the following tasks we will work through a data storytelling data flow. Imagine that you are preparing a brief for the local health authority, and they have asked you to answer the following questions. For each question, write a chunk of code that would provide the answer in a clean and reproducible way.
+
+Let's start by loading in the data, which is available online:
+
+```{r loading-data, message = FALSE}
+tbi_age <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_age.csv")
+
+tbi_year <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-24/tbi_year.csv")
+```
+
+Last week we learned that as part of good coding practice, your folder structure plays a key role. Now, set up folders in your working directory: raw_data, scripts, plots, and tables. Put this RMarkdown document in your scripts folder. 
+
+If you are working with Projects (which is recommended), be sure that these folders are accessible by your R Project. You can do this by (a) creating a new project or (b) creating your folder structure within an existing R Project space. 
+
+## Tasks
+
+### Task 1
+
+Save both datasets in the raw_data folder (use the 'here' library). Particularly when using data for an analysis that is available online and continually updated, it is a good idea to save a version of the raw data that you used. 
+
+```{r task-1}
+
+```
+
+
+### Task 2.1
+
+Use your favourite functions for eyeballing data and write a couple of sentences about each dataset (its dimensions, the variables inside, types of data, etc.)
+
+```{r task-2-1}
+
+```
+
+
+### Task 2.2
+
+Are there any variables in the 2 datasets that should be treated as factors? Decide which ones, and turn them into factors. 
+
+Once you've done that, think about the order of factor levels. Does it need to be changed? If so, change it.
+
+
+```{r task-2-2}
+
+```
+
+
+### Task 3
+
+Which injury mechanism caused the most deaths in total, across age groups?
+
+```{r task-3}
+
+```
+
+### Task 4
+
+Looking just at the totals across age groups, what is the number of ED visits, hospitalisations and deaths associated with each injury mechanism? Present the results as a table. Save this table in your tables folder.
+
+Reminder, a great resource for all of the different options around formatting with `kable` tables and `kableExtra` can be [found here](https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html#Table_Styles). I reference it pretty much every time I go to make a table! 
+
+
+```{r task-4}
+  
+```
+
+
+
+### Task 5
+
+Focusing on the oldest age group (75+), draw a bar chart illustrating the number of hospitalisations associated with each injury mechanism. Make sure that you add a title and appropriate axis labels. Save this chart in your plots folder.
+
+```{r task-5}
+
+```
+
+### Task 6
+
+Plot a line chart that depicts the rate of deaths, per 100000 population, 
+from traumatic brain injury in years 2006-2014. Which datset do you think we will need to use for this? Save this chart in your plots folder.
+
+```{r task-6}
+
+```
+
+### Task 7
+
+The CDC produced a report, entitled the TBI Surveillance Report, which you can find at [this URL](https://www.cdc.gov/traumaticbraininjury/pdf/TBI-Surveillance-Report-FINAL_508.pdf). 
+
+On page 14 of the report (page 15 of the pdf document), you'll find Figure 2A, showing the rates, per 100000 population, of TBI-related ED visits, by year, and mechanism of injury, 2006-2014. Try and re-create this figure.
+
+First, focus just on depicting the data (you can use the default settings of ggplot). If you still have time, try reproducing this figure as closely as possible (colors, style, etc.). Save the final version of your figure in your plots folder.
+
+```{r task-7}
+
+```
+
+
+---
+*Brittany Blankinship & Kasia Banas (2022)* 
