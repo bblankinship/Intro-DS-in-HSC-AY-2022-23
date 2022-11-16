@@ -1,5 +1,5 @@
 ---
-title: "Week 8 Tutorial: TBI Data SOLUTIONS"
+title: "Week 8 Tutorial: TBI Data"
 date: "`r Sys.Date()`"
 output: 
   html_document: 
