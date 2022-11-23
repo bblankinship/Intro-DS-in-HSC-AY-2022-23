@@ -1,0 +1,411 @@
+---
+title: "Week 9 Risk Prediction"
+author: "Kevin Tsang"
+date: "2022-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(PRROC)
+```
+
+## Introduction
+
+Data source: https://www.opendata.nhs.scot/dataset/unintentional-injuries
+
+Research question: Given someone (knowing their age) has died from injury, what probability that it was from a "fall"?
+
+```{r functions}
+# functions ----
+best_gma <- function(roc){
+  # Function to calculate the best threshold based on geometric mean accuracy (GMA)
+  spe <- 1 - roc$curve[,1]
+  sen <- roc$curve[,2]
+  
+  thresh <- roc$curve[,3]
+  
+  gma <- sqrt(spe * sen)
+  
+  opt_gma    <- max(gma)
+  opt_thresh <- thresh[which.max(gma)]
+  opt_spe    <- spe[which.max(gma)]
+  opt_sen    <- sen[which.max(gma)]
+  return(list(opt_gma    = opt_gma,
+              opt_thresh = opt_thresh,
+              opt_spe    = opt_spe,
+              opt_sen    = opt_sen))
+}
+plot_spe_sen <- function(roc){
+  # Plot the specificity and sensitivity across different thresholds
+  # Note: this is not the ROC curve
+  plot_df <- data.frame(
+    spe    = 1 - roc$curve[,1],
+    sen    = roc$curve[,2],
+    thresh = roc$curve[,3])
+  
+  plot_df <- plot_df %>%
+    pivot_longer(cols      = c("spe", "sen"), 
+                 names_to  = "metric",
+                 values_to = "value")
+  
+  spe_sen_plot <- ggplot(plot_df,
+                         aes(x   = thresh,
+                             y   = value,
+                             col = metric)) +
+    geom_step()
+  
+  print(spe_sen_plot)
+  return(spe_sen_plot)
+}
+```
+
+```{r import-data}
+# use either a local data file import or URL import
+deaths_raw <- read_csv("ui_deaths_2022.csv")
+# deaths_raw <- read_csv("https://www.opendata.nhs.scot/dataset/b0135993-3d8a-4f3b-afcf-e01f4d52137c/resource/89807e07-fc5f-4b5e-a077-e4cf59491139/download/ui_deaths_-2022-.csv")
+
+# remove aggregate values
+deaths <- deaths_raw %>%
+  clean_names() %>%
+  filter(age_group   != "All",
+         sex         != "All",
+         injury_type != "All")
+```
+
+## Data Wrangling
+
+```{r}
+deaths <- deaths %>%
+  group_by(year, age_group, sex, injury_type) %>%
+  summarise(numberof_deaths = sum(numberof_deaths, na.rm = TRUE)) %>%
+  ungroup() %>%
+  # re order factors
+  mutate(injury_type = factor(injury_type),
+         age_group = factor(age_group,
+                            levels = c("0-4 years",
+                                       "5-9 years",
+                                       "10-14 years",
+                                       "15-24 years",
+                                       "25-44 years",
+                                       "45-64 years",
+                                       "65-74 years",
+                                       "75plus years"))) %>%
+  mutate(injury_type = fct_relevel(injury_type, "Other", after = Inf)) %>%
+  # create numeric variable from ordinal data
+  mutate(age_group_num = recode(age_group, 
+                                "0-4 years"    = 0,
+                                "5-9 years"    = 5,
+                                "10-14 years"  = 10,
+                                "15-24 years"  = 15,
+                                "25-44 years"  = 25,
+                                "45-64 years"  = 45,
+                                "65-74 years"  = 65,
+                                "75plus years" = 75)) %>%
+  # one hot encoding categorical variable
+  mutate(age_group0_4yo = ifelse(age_group    == "0-4 years", 1, 0),
+         age_group5_9yo = ifelse(age_group    == "5-9 years", 1, 0),
+         age_group10_14yo = ifelse(age_group  == "10-14 years", 1, 0),
+         age_group15_24yo = ifelse(age_group  == "15-24 years", 1, 0),
+         age_group25_54yo = ifelse(age_group  == "25-44 years", 1, 0),
+         age_group45_64yo = ifelse(age_group  == "45-64 years", 1, 0),
+         age_group65_74yo = ifelse(age_group  == "65-74 years", 1, 0),
+         age_group75plusyo = ifelse(age_group == "75plus years", 1, 0)) %>%
+  # create binary variables
+  mutate(sex_male = ifelse(sex == "Male", 1, 0)) %>%
+  mutate(falls = injury_type == "Falls")
+
+# expand into 1 patient per row
+deaths_patient <- deaths %>%
+  uncount(numberof_deaths)
+```
+
+## Split data into training set, validation set, testing set
+
+Testing set is data from 2021. Training and validation set is 80%-20% random split.
+
+```{r}
+set.seed(123)
+# split train-test (year < 2021, year == 2021)
+deaths_patient_falls_train_raw <- deaths_patient %>%
+  filter(year != 2021)
+
+# split train-valid (80%-20%)
+train_valid_split <- sample(c(rep(TRUE,8), rep(FALSE,2)), 
+                            size = nrow(deaths_patient_falls_train_raw), 
+                            replace = TRUE)
+deaths_patient_falls_train <- deaths_patient_falls_train_raw[train_valid_split,]
+deaths_patient_falls_valid <- deaths_patient_falls_train_raw[!train_valid_split,]
+deaths_patient_falls_test  <- deaths_patient %>%
+  filter(year == 2021)
+
+```
+
+## Plots about the population
+
+```{r}
+age_fall_plot <- deaths %>% 
+  filter(injury_type == "Falls",
+         year != 2021) %>% 
+  group_by(age_group, year) %>%
+  summarise(numberof_deaths = sum(numberof_deaths, na.rm = TRUE)) %>%
+  ggplot(
+    aes(x   = age_group,
+        y   = numberof_deaths,
+        col = as.factor(year))) +
+  geom_point() + 
+  labs(
+    x       = "Age Group",
+    y       = "Number of Deaths",
+    title   = "Deaths from Falls in Scotland (2012 - 2020)",
+    col     = "Year",
+    caption = "Source: Public Health Scotland"
+  ) +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+age_fall_plot
+
+# ggsave("deaths_age_fall_plot.png", age_fall_plot,
+#        width = 1500, height = 1200, units = "px")
+
+```
+
+``` {r}
+death_type_year_plot <- deaths %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  mutate(annual_deaths = sum(numberof_deaths, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(numberof_deaths_perc = numberof_deaths / annual_deaths * 100) %>%
+  group_by(injury_type, year) %>%
+  summarise(numberof_deaths      = sum(numberof_deaths,      na.rm = TRUE),
+            numberof_deaths_perc = sum(numberof_deaths_perc, na.rm = TRUE)) %>%
+  ggplot(
+    aes(x    = year,
+        y    = numberof_deaths_perc,
+        fill = injury_type)) +
+  geom_col() +
+  labs(
+    x        = "Year",
+    y        = "Number of Deaths per Year (%)",
+    title    = "Proportion of Deaths by Different Injury Types",
+    subtitle = "(2012 - 2020)",
+    fill     = "Injury Type",
+    caption  = "Source: Public Health Scotland"
+  ) +
+  theme_light()
+death_type_year_plot
+
+# ggsave("deaths_type_year_plot.png", death_type_year_plot,
+#        width = 1500, height = 1200, units = "px")
+```
+
+``` {r}
+age_fall_proportion_plot <- deaths %>% 
+  filter(year != 2021) %>%
+  group_by(age_group) %>%
+  mutate(age_group_deaths = sum(numberof_deaths, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(numberof_deaths_perc = numberof_deaths / age_group_deaths * 100) %>%
+  group_by(falls, age_group) %>%
+  summarise(
+    numberof_deaths      = sum(numberof_deaths,      na.rm = TRUE),
+    numberof_deaths_perc = sum(numberof_deaths_perc, na.rm = TRUE)
+    ) %>%
+  ggplot(
+    aes(x    = age_group,
+        y    = numberof_deaths_perc,
+        fill = falls)) +
+  geom_col() + 
+  labs(
+    x        = "Age Group",
+    y        = "Number of Deaths per Age Group (%)",
+    title    = "Proportion of Deaths from Falls in Scotland",
+    subtitle = "(2012 - 2020)",
+    fill     = "Injury Type",
+    caption  = "Source: Public Health Scotland"
+  ) +
+  scale_fill_manual(
+    labels = c("Other", "Falls"), 
+    values = c("#619cff", "#f8766d")) +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+age_fall_proportion_plot
+
+# ggsave("deaths_age_proportion_plot.png", age_fall_proportion_plot,
+#        width = 1500, height = 1200, units = "px")
+```
+
+## Logistic Regression
+
+### Training
+
+Fit a logistic regression model using age as a predictor.
+
+```{r}
+######################
+# ACTIVITY: you can try different predictors to build different models. Update the equation (falls ~ age_group_num)
+######################
+
+deaths_falls_logistic_1d <- glm(
+  falls ~ age_group_num,
+  data   = deaths_patient_falls_train,
+  family = "binomial")
+```
+
+### Validation
+
+```{r}
+deaths_falls_1d_valid_pred <- predict(deaths_falls_logistic_1d, 
+                                      newdata = deaths_patient_falls_valid)
+```
+
+Plot to see the model
+
+```{r}
+logistic_1d_model_df <- data.frame(
+  x = 0:100,
+  y = 1/(1+ exp(-1 * (0:100 * deaths_falls_logistic_1d$coefficients[2] + deaths_falls_logistic_1d$coefficients[1] ) ))
+  )
+
+logistic_1d_fit_plot <- ggplot(deaths_patient_falls_train,
+       aes(x = age_group_num,
+           y = as.numeric(falls))) + 
+  geom_jitter(alpha  = 0.01, 
+              height = 0.1, 
+              width  = 2) +
+  geom_line(data = logistic_1d_model_df,
+            aes(
+              x = x,
+              y = y),
+            col = "red") + 
+  labs(
+    x        = "Age",
+    y        = "Death by Falls (0=False, 1=True)",
+    title    = "Logistic Regression Model",
+    subtitle = "risk ~ age"
+  ) +
+  theme_light()
+logistic_1d_fit_plot
+
+# ggsave("deaths_logistic_1d_fit_plot.png", logistic_1d_fit_plot,
+#        width = 1500, height = 1200, units = "px")
+```
+
+Plot ROC curve
+```{r}
+deaths_falls_1d_valid_roc <- roc.curve(
+  deaths_falls_1d_valid_pred[deaths_patient_falls_valid$injury_type == "Falls"],
+  deaths_falls_1d_valid_pred[deaths_patient_falls_valid$injury_type != "Falls"], 
+  curve = TRUE)
+
+plot(deaths_falls_1d_valid_roc)
+```
+
+Plot balance of sensitivity and specificity
+```{r}
+# Calculate optimal threshold using GMA
+deaths_falls_1d_valid_opt <- best_gma(deaths_falls_1d_valid_roc)
+
+# calculate probability using sigmoid to replace threshold
+deaths_falls_1d_valid_roc_prob           <- deaths_falls_1d_valid_roc
+deaths_falls_1d_valid_roc_prob$curve[,3] <- 1/(1 + exp(-1 * deaths_falls_1d_valid_roc_prob$curve[,3]))
+deaths_fall_1d_valid_spe_sen_plot        <- plot_spe_sen(deaths_falls_1d_valid_roc_prob)
+
+deaths_fall_1d_valid_spe_sen_plot <- deaths_fall_1d_valid_spe_sen_plot + 
+  geom_vline(aes(xintercept = 1/(1 + exp(-1 * deaths_falls_1d_valid_opt$opt_thresh))),
+             linetype = 2) +
+  annotate("text", 
+           x     = 1/(1 + exp(-1 * deaths_falls_1d_valid_opt$opt_thresh)),
+           y     = 0.1,
+           hjust = 1.1,
+           label = "Optimal Threshold") +
+  labs(
+    x        = "Threshold",
+    y        = "Value",
+    col      = "Metric",
+    title    = "Sensitivity and Specificity at Different Thresholds",
+    subtitle = paste0("Optimal Threshold = ", round(1/(1 + exp(-1 * deaths_falls_1d_valid_opt$opt_thresh)), 2),
+                      ", Sensitivity = ", round(deaths_falls_1d_valid_opt$opt_sen, 2),
+                      ", Specificity = ", round(deaths_falls_1d_valid_opt$opt_spe, 2))
+  )
+deaths_fall_1d_valid_spe_sen_plot
+
+# ggsave("deaths_fall_1d_valid_opt_thresh_plot.png", deaths_fall_1d_valid_spe_sen_plot,
+#        width = 1500, height = 1200, units = "px")
+```
+
+```{r}
+# add line to denote threshold
+risk_cutoff <- 1/(1 + exp(-1 * deaths_falls_1d_valid_opt$opt_thresh))
+age_cut_off <- (deaths_falls_1d_valid_opt$opt_thresh -
+                  deaths_falls_logistic_1d$coefficients[1])/
+  deaths_falls_logistic_1d$coefficients[2]
+
+logistic_1d_fit_thresh_plot <- logistic_1d_fit_plot +
+  geom_vline(aes(xintercept = age_cut_off),
+             linetype = 2) +
+  geom_segment(
+    aes(x    = -Inf, 
+        xend = age_cut_off,
+        y    = risk_cutoff, 
+        yend = risk_cutoff),
+    linetype = 2) +
+  annotate("text",
+           x     = age_cut_off,
+           y     = 0.5,
+           hjust = -0.1,
+           label = "Predict Death by Fall") +
+  annotate("text",
+           x     = age_cut_off,
+           y     = 0.5,
+           hjust = 1.1,
+           label = "Predict Death by Other Injury")
+logistic_1d_fit_thresh_plot
+
+# ggsave("deaths_logistic_1d_fit_plot.png", logistic_1d_fit_thresh_plot,
+#        width = 1500, height = 1200, units = "px")
+```
+
+Explore different thresholds
+```{r}
+######################
+# ACTIVITY: Try other thresholds (between 0 and 1) other than 0.5 to see how the predictions change.
+######################
+
+deaths_falls_1d_valid_class <- 1/(1 + exp(-1 * deaths_falls_1d_valid_pred)) >= 0.5
+
+head(data.frame(
+  pred         = 1/(1 + exp(-1 * deaths_falls_1d_valid_pred)),
+  pred_class   = deaths_falls_1d_valid_class, 
+  actual_class = deaths_patient_falls_valid$falls,
+  age          = deaths_patient_falls_valid$age_group))
+
+# confusion matrix
+table(deaths_falls_1d_valid_class, deaths_patient_falls_valid$falls)
+```
+
+
+### Testing
+```{r}
+deaths_falls_1d_test_pred <- predict(deaths_falls_logistic_1d, 
+                                     newdata = deaths_patient_falls_test)
+deaths_falls_1d_test_roc <- roc.curve(
+  deaths_falls_1d_test_pred[deaths_patient_falls_test$injury_type == "Falls"],
+  deaths_falls_1d_test_pred[deaths_patient_falls_test$injury_type != "Falls"],
+  curve = TRUE)
+deaths_falls_1d_test_class <- deaths_falls_1d_test_pred >= deaths_falls_1d_valid_opt$opt_thresh
+
+
+table(deaths_falls_1d_test_class, deaths_patient_falls_test$falls)
+
+# calculate specificity and sensitivity
+deaths_falls_1d_test_thresh_index <- which(deaths_falls_1d_test_roc$curve[,3] < deaths_falls_1d_valid_opt$opt_thresh)[1]
+deaths_falls_1d_test_spe          <- 1 - deaths_falls_1d_test_roc$curve[deaths_falls_1d_test_thresh_index, 1]
+deaths_falls_1d_test_sen          <- deaths_falls_1d_test_roc$curve[deaths_falls_1d_test_thresh_index, 2]
+```
+
+Sensitivity on the test set is `r deaths_falls_1d_test_sen`. Specificity on the test set is `r deaths_falls_1d_test_spe`.
